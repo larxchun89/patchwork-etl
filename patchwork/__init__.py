@@ -39,4 +39,20 @@ __all__ = [
     "LoadError",
     "SchemaValidationError",
     "RetryExhaustedError",
+    "get_version",
 ]
+
+
+def get_version() -> str:
+    """Return the current version of the patchwork-etl package.
+
+    Returns:
+        str: The version string in ``MAJOR.MINOR.PATCH`` format.
+
+    Example::
+
+        >>> import patchwork
+        >>> patchwork.get_version()
+        '0.1.0'
+    """
+    return __version__
