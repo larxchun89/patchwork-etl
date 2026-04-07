@@ -2,6 +2,17 @@
 
 Provides core abstractions for Extract, Transform, and Load operations
 with built-in retry logic and schema validation.
+
+Example usage::
+
+    from patchwork import Pipeline, ExtractStep, TransformStep, LoadStep
+
+    pipeline = Pipeline([
+        ExtractStep(source),
+        TransformStep(transform_fn),
+        LoadStep(destination),
+    ])
+    pipeline.run()
 """
 
 from patchwork.pipeline import Pipeline
