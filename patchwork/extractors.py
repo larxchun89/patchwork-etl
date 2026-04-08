@@ -94,7 +94,13 @@ class JSONLExtractor(BaseExtractor):
         self.encoding = encoding
 
     def extract(self) -> Generator[Dict[str, Any], None, None]:
-        """Yield records parsed from each non-empty line of the JSONL file."""
+        """Yield records from the JSONL file as dictionaries.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+            json.JSONDecodeError: If a line contains invalid JSON, the error
+                is logged with the offending line number and the line is skipped.
+        """
         if not self.filepath.exists():
             raise FileNotFoundError(f"JSONL file not found: {self.filepath}")
 
@@ -105,37 +111,11 @@ class JSONLExtractor(BaseExtractor):
                 if not line:
                     continue
                 try:
-                    record = json.loads(line)
+                    yield json.loads(line)
                 except json.JSONDecodeError as exc:
-                    raise ValueError(
-                        f"Invalid JSON on line {lineno} of {self.filepath}: {exc}"
-                    ) from exc
-                if not isinstance(record, dict):
-                    raise TypeError(
-                        f"Expected a JSON object on line {lineno}, got {type(record).__name__}"
+                    logger.warning(
+                        "Skipping invalid JSON on line %d of %s: %s",
+                        lineno,
+                        self.filepath,
+                        exc,
                     )
-                yield record
-
-
-class IterableExtractor(BaseExtractor):
-    """Wrap an in-memory iterable so it can be used as an extractor.
-
-    Useful for testing pipelines or sourcing data already loaded in memory.
-
-    Args:
-        records: Any iterable of dict records.
-        name: Optional human-readable name for this extractor.
-    """
-
-    def __init__(
-        self,
-        records: Iterable[Dict[str, Any]],
-        name: Optional[str] = None,
-    ) -> None:
-        super().__init__(name=name)
-        # Materialise to a list so the extractor can be iterated multiple times.
-        self._records: List[Dict[str, Any]] = list(records)
-
-    def extract(self) -> Iterator[Dict[str, Any]]:
-        """Yield each record from the wrapped iterable."""
-        return iter(self._records)
