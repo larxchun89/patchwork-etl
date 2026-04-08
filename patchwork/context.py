@@ -78,40 +78,35 @@ class PipelineContext:
             self._store.update(mapping)
 
     def delete(self, key: str) -> None:
-        """Remove *key* from the store; silently ignored if absent."""
+        """Remove *key* from the context store.
+
+        Args:
+            key: The key to remove.
+
+        Raises:
+            KeyError: If *key* is not present in the context store.
+        """
         with self._lock:
-            self._store.pop(key, None)
+            if key not in self._store:
+                raise KeyError(
+                    f"Cannot delete context key '{key}': key does not exist."
+                )
+            del self._store[key]
 
     def keys(self) -> Iterator[str]:
-        """Return a snapshot of the current context keys."""
+        """Return an iterator over the keys currently held in the context store."""
         with self._lock:
             return iter(list(self._store.keys()))
 
-    def as_dict(self) -> Dict[str, Any]:
-        """Return a shallow copy of the current context store."""
-        with self._lock:
-            return dict(self._store)
-
-    def clear(self) -> None:
-        """Remove all user-set values from the store.
-
-        The ``run_id`` and ``created_at`` attributes are preserved.
-        """
-        with self._lock:
-            self._store.clear()
-
-    # ------------------------------------------------------------------
-    # Dunder helpers
-    # ------------------------------------------------------------------
-
     def __contains__(self, key: str) -> bool:
+        """Support ``in`` operator for membership testing, e.g. ``'foo' in ctx``."""
         with self._lock:
             return key in self._store
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pragma: no cover
         return (
             f"PipelineContext(run_id={self.run_id!r}, "
-            f"keys={list(self._store.keys())!r})"
+            f"keys={list(self._store.keys())})"
         )
 
     # ------------------------------------------------------------------
@@ -120,6 +115,5 @@ class PipelineContext:
 
     @staticmethod
     def _generate_run_id() -> str:
-        """Generate a simple timestamp-based run identifier."""
-        ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
-        return f"run-{ts}"
+        """Generate a run ID from the current UTC timestamp."""
+        return datetime.now(timezone.utc).strftime("run-%Y%m%dT%H%M%S")
